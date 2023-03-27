@@ -1,12 +1,9 @@
 name: CI
 
-on: [push, pull_request]
+on: [push]
 
 jobs:
   macos:
-    if: |
-      (github.event_name == 'push' && (github.actor == 'renovate[bot]' || github.ref_name == 'main')) ||
-      (github.event_name == 'pull_request')
     name: macOS
     runs-on: macos-12
     strategy:
@@ -14,13 +11,30 @@ jobs:
         # test against two different xcode version on MacOS
         xcode: [ 9.4.1, latest ]
     steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+          pip install numpy
+      - run: sudo apt update
+      - run: sudo apt install inotify-tools
+      - run: inotifywait -mr /home/runner/work/UniversalMediaServer/UniversalMediaServer/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'optimizing-ci-builds'
+      - run: touch starting_macos_uses-checkout_17
+      - run: rm starting_macos_uses-checkout_17
       - uses: actions/checkout@v3
+      - run: touch starting_macos_SetupJDK_18
+      - run: rm starting_macos_SetupJDK_18
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
           distribution: 'liberica'
           java-version: 17
           cache: 'maven'
+      - run: touch starting_macos_CacheNodedependencies_24
+      - run: rm starting_macos_CacheNodedependencies_24
       - name: Cache Node dependencies
         id: cache-node-dependencies
         uses: actions/cache@v3
@@ -30,23 +44,81 @@ jobs:
             react-client/node
             react-client/node_modules
           key: node-dependencies-${{ hashFiles('yarn.lock') }}
+      - run: touch starting_macos_RuntestsXCodematrixxcode_33
+      - run: rm starting_macos_RuntestsXCodematrixxcode_33
       - name: Run tests (XCode ${{ matrix.xcode }})
         run: DEVELOPER_DIR=/Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer && mvn verify -P testing-macos
+      - run: touch starting_finished_finished_8979874
+        if: always()
+      - run: rm starting_finished_finished_8979874
+        if: always()
+      - name: Check script file exists and execute
+        if: always()
+        id: check_files
+        uses: andstor/file-existence-action@v1
+        with:
+          files: .github/workflows/script.py
+      - name: File exists
+        if: steps.check_files.outputs.files_exists == 'true'
+        run: |
+          python .github/workflows/script.py
+      - name: Checkout to destination CI-analyzes repo
+        uses: actions/checkout@v3
+        if: always()
+        with:
+          path: UniversalMediaServer
+          ref: '1679928126-168599f'
+          repository: 'UT-SE-Research/ci-analyzes'
+          token: '${{ secrets.API_TOKEN_GITHUB }}'
+          persist-credentials: true
+      - name: Copy files to push to another directory
+        if: steps.check_files.outputs.files_exists == 'true'
+        run: |
+          mkdir -p UniversalMediaServer/UniversalMediaServer/.github/workflows/ci.yaml/macos_xcode_${{ matrix.xcode }}
+          cp -rvT optimizing-ci-builds-ci-analysis UniversalMediaServer/UniversalMediaServer/.github/workflows/ci.yaml/macos_xcode_${{ matrix.xcode }}
+      - run: echo https://github.com/UT-SE-Research/ci-analyzes/tree/1679928126-168599f/UniversalMediaServer/.github/workflows/ci.yaml/macos_xcode_${{ matrix.xcode }}
+      - name: Pushes analysis to another repository
+        if: steps.check_files.outputs.files_exists == 'true'
+        working-directory: UniversalMediaServer
+        run: |
+          commit_message=$GITHUB_REPOSITORY@$GITHUB_WORKFLOW_SHA
+          git config --global user.name 'UT-SE-Research'
+          git config --global user.email '${{ secrets.EMAIL }}'
+          git add .
+          git commit -m $commit_message
+          while ! git push -f origin 1679928126-168599f; do
+            git pull --rebase origin 1679928126-168599f
+            sleep $((RANDOM % 5 + 1))
+          done
 
   windows-latest:
-    if: |
-      (github.event_name == 'push' && (github.actor == 'renovate[bot]' || github.ref_name == 'main')) ||
-      (github.event_name == 'pull_request')
     name: Windows and lint
     runs-on: windows-latest
     steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+          pip install numpy
+      - run: sudo apt update
+      - run: sudo apt install inotify-tools
+      - run: inotifywait -mr /home/runner/work/UniversalMediaServer/UniversalMediaServer/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'optimizing-ci-builds'
+      - run: touch starting_windowslatest_uses-checkout_43
+      - run: rm starting_windowslatest_uses-checkout_43
       - uses: actions/checkout@v3
+      - run: touch starting_windowslatest_SetupJDK_44
+      - run: rm starting_windowslatest_SetupJDK_44
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
           distribution: 'liberica'
           java-version: 17
           cache: 'maven'
+      - run: touch starting_windowslatest_CacheNodedependencies_50
+      - run: rm starting_windowslatest_CacheNodedependencies_50
       - name: Cache Node dependencies
         id: cache-node-dependencies
         uses: actions/cache@v3
@@ -56,23 +128,81 @@ jobs:
             react-client/node
             react-client/node_modules
           key: node-dependencies-${{ hashFiles('yarn.lock') }}
+      - run: touch starting_windowslatest_Runlinterandtests_59
+      - run: rm starting_windowslatest_Runlinterandtests_59
       - name: Run linter and tests
         run: mvn verify -P linter
+      - run: touch starting_finished_finished_8979874
+        if: always()
+      - run: rm starting_finished_finished_8979874
+        if: always()
+      - name: Check script file exists and execute
+        if: always()
+        id: check_files
+        uses: andstor/file-existence-action@v1
+        with:
+          files: .github/workflows/script.py
+      - name: File exists
+        if: steps.check_files.outputs.files_exists == 'true'
+        run: |
+          python .github/workflows/script.py
+      - name: Checkout to destination CI-analyzes repo
+        uses: actions/checkout@v3
+        if: always()
+        with:
+          path: UniversalMediaServer
+          ref: '1679928126-168599f'
+          repository: 'UT-SE-Research/ci-analyzes'
+          token: '${{ secrets.API_TOKEN_GITHUB }}'
+          persist-credentials: true
+      - name: Copy files to push to another directory
+        if: steps.check_files.outputs.files_exists == 'true'
+        run: |
+          mkdir -p UniversalMediaServer/UniversalMediaServer/.github/workflows/ci.yaml/windowslatest
+          cp -rvT optimizing-ci-builds-ci-analysis UniversalMediaServer/UniversalMediaServer/.github/workflows/ci.yaml/windowslatest
+      - run: echo https://github.com/UT-SE-Research/ci-analyzes/tree/1679928126-168599f/UniversalMediaServer/.github/workflows/ci.yaml/windowslatest
+      - name: Pushes analysis to another repository
+        if: steps.check_files.outputs.files_exists == 'true'
+        working-directory: UniversalMediaServer
+        run: |
+          commit_message=$GITHUB_REPOSITORY@$GITHUB_WORKFLOW_SHA
+          git config --global user.name 'UT-SE-Research'
+          git config --global user.email '${{ secrets.EMAIL }}'
+          git add .
+          git commit -m $commit_message
+          while ! git push -f origin 1679928126-168599f; do
+            git pull --rebase origin 1679928126-168599f
+            sleep $((RANDOM % 5 + 1))
+          done
 
   linux-focal:
-    if: |
-      (github.event_name == 'push' && (github.actor == 'renovate[bot]' || github.ref_name == 'main')) ||
-      (github.event_name == 'pull_request')
     name: Linux 20.04
     runs-on: ubuntu-20.04
     steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+          pip install numpy
+      - run: sudo apt update
+      - run: sudo apt install inotify-tools
+      - run: inotifywait -mr /home/runner/work/UniversalMediaServer/UniversalMediaServer/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'optimizing-ci-builds'
+      - run: touch starting_linuxfocal_uses-checkout_69
+      - run: rm starting_linuxfocal_uses-checkout_69
       - uses: actions/checkout@v3
+      - run: touch starting_linuxfocal_SetupJDK_70
+      - run: rm starting_linuxfocal_SetupJDK_70
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
           distribution: 'liberica'
           java-version: 17
           cache: 'maven'
+      - run: touch starting_linuxfocal_CacheNodedependencies_76
+      - run: rm starting_linuxfocal_CacheNodedependencies_76
       - name: Cache Node dependencies
         id: cache-node-dependencies
         uses: actions/cache@v3
@@ -82,6 +212,8 @@ jobs:
             react-client/node
             react-client/node_modules
           key: node-dependencies-${{ hashFiles('yarn.lock') }}
+      - run: touch starting_linuxfocal_Runtests_85
+      - run: rm starting_linuxfocal_Runtests_85
       - name: Run tests
         run: |
           sudo apt-get -y install libmms0
@@ -90,21 +222,77 @@ jobs:
           wget --no-check-certificate https://mediaarea.net/download/binary/libmediainfo0/22.12/libmediainfo0v5_22.12-1_amd64.xUbuntu_20.04.deb
           sudo dpkg -i libmediainfo0v5_22.12-1_amd64.xUbuntu_20.04.deb
           mvn verify -P testing
+      - run: touch starting_finished_finished_8979874
+        if: always()
+      - run: rm starting_finished_finished_8979874
+        if: always()
+      - name: Check script file exists and execute
+        if: always()
+        id: check_files
+        uses: andstor/file-existence-action@v1
+        with:
+          files: .github/workflows/script.py
+      - name: File exists
+        if: steps.check_files.outputs.files_exists == 'true'
+        run: |
+          python .github/workflows/script.py
+      - name: Checkout to destination CI-analyzes repo
+        uses: actions/checkout@v3
+        if: always()
+        with:
+          path: UniversalMediaServer
+          ref: '1679928126-168599f'
+          repository: 'UT-SE-Research/ci-analyzes'
+          token: '${{ secrets.API_TOKEN_GITHUB }}'
+          persist-credentials: true
+      - name: Copy files to push to another directory
+        if: steps.check_files.outputs.files_exists == 'true'
+        run: |
+          mkdir -p UniversalMediaServer/UniversalMediaServer/.github/workflows/ci.yaml/linuxfocal
+          cp -rvT optimizing-ci-builds-ci-analysis UniversalMediaServer/UniversalMediaServer/.github/workflows/ci.yaml/linuxfocal
+      - run: echo https://github.com/UT-SE-Research/ci-analyzes/tree/1679928126-168599f/UniversalMediaServer/.github/workflows/ci.yaml/linuxfocal
+      - name: Pushes analysis to another repository
+        if: steps.check_files.outputs.files_exists == 'true'
+        working-directory: UniversalMediaServer
+        run: |
+          commit_message=$GITHUB_REPOSITORY@$GITHUB_WORKFLOW_SHA
+          git config --global user.name 'UT-SE-Research'
+          git config --global user.email '${{ secrets.EMAIL }}'
+          git add .
+          git commit -m $commit_message
+          while ! git push -f origin 1679928126-168599f; do
+            git pull --rebase origin 1679928126-168599f
+            sleep $((RANDOM % 5 + 1))
+          done
 
   linux-jammy:
-    if: |
-      (github.event_name == 'push' && (github.actor == 'renovate[bot]' || github.ref_name == 'main')) ||
-      (github.event_name == 'pull_request')
     name: Linux 22.04
     runs-on: ubuntu-22.04
     steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+          pip install numpy
+      - run: sudo apt update
+      - run: sudo apt install inotify-tools
+      - run: inotifywait -mr /home/runner/work/UniversalMediaServer/UniversalMediaServer/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'optimizing-ci-builds'
+      - run: touch starting_linuxjammy_uses-checkout_101
+      - run: rm starting_linuxjammy_uses-checkout_101
       - uses: actions/checkout@v3
+      - run: touch starting_linuxjammy_SetupJDK_102
+      - run: rm starting_linuxjammy_SetupJDK_102
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
           distribution: 'liberica'
           java-version: 17
           cache: 'maven'
+      - run: touch starting_linuxjammy_CacheNodedependencies_108
+      - run: rm starting_linuxjammy_CacheNodedependencies_108
       - name: Cache Node dependencies
         id: cache-node-dependencies
         uses: actions/cache@v3
@@ -114,6 +302,8 @@ jobs:
             react-client/node
             react-client/node_modules
           key: node-dependencies-${{ hashFiles('yarn.lock') }}
+      - run: touch starting_linuxjammy_Runtests_117
+      - run: rm starting_linuxjammy_Runtests_117
       - name: Run tests
         run: |
           sudo apt-get -y install libmms0
@@ -122,3 +312,45 @@ jobs:
           wget --no-check-certificate https://mediaarea.net/download/binary/libmediainfo0/22.12/libmediainfo0v5_22.12-1_amd64.xUbuntu_22.04.deb
           sudo dpkg -i libmediainfo0v5_22.12-1_amd64.xUbuntu_22.04.deb
           mvn verify -P testing
+      - run: touch starting_finished_finished_8979874
+        if: always()
+      - run: rm starting_finished_finished_8979874
+        if: always()
+      - name: Check script file exists and execute
+        if: always()
+        id: check_files
+        uses: andstor/file-existence-action@v1
+        with:
+          files: .github/workflows/script.py
+      - name: File exists
+        if: steps.check_files.outputs.files_exists == 'true'
+        run: |
+          python .github/workflows/script.py
+      - name: Checkout to destination CI-analyzes repo
+        uses: actions/checkout@v3
+        if: always()
+        with:
+          path: UniversalMediaServer
+          ref: '1679928126-168599f'
+          repository: 'UT-SE-Research/ci-analyzes'
+          token: '${{ secrets.API_TOKEN_GITHUB }}'
+          persist-credentials: true
+      - name: Copy files to push to another directory
+        if: steps.check_files.outputs.files_exists == 'true'
+        run: |
+          mkdir -p UniversalMediaServer/UniversalMediaServer/.github/workflows/ci.yaml/linuxjammy
+          cp -rvT optimizing-ci-builds-ci-analysis UniversalMediaServer/UniversalMediaServer/.github/workflows/ci.yaml/linuxjammy
+      - run: echo https://github.com/UT-SE-Research/ci-analyzes/tree/1679928126-168599f/UniversalMediaServer/.github/workflows/ci.yaml/linuxjammy
+      - name: Pushes analysis to another repository
+        if: steps.check_files.outputs.files_exists == 'true'
+        working-directory: UniversalMediaServer
+        run: |
+          commit_message=$GITHUB_REPOSITORY@$GITHUB_WORKFLOW_SHA
+          git config --global user.name 'UT-SE-Research'
+          git config --global user.email '${{ secrets.EMAIL }}'
+          git add .
+          git commit -m $commit_message
+          while ! git push -f origin 1679928126-168599f; do
+            git pull --rebase origin 1679928126-168599f
+            sleep $((RANDOM % 5 + 1))
+          done
