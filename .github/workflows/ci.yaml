@@ -1,6 +1,7 @@
-name: Universal Media Server CI
+name: Universal Media Server CI 
+# one-run-to-find-them-all
 
-on: [push, pull_request]
+on: [push, pull_request] 
 
 jobs:
   macos:
